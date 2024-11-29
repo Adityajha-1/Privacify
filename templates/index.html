@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Scan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center text-primary">Privacy Leak Detection</h1>
+        <p class="text-center text-muted">Scan websites for potential privacy breaches.</p>
+        
+        <!-- User Input Form -->
+        <form id="privacyForm" class="mt-4">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="text" id="phone" class="form-control" placeholder="Enter your phone number" required>
+            </div>
+            <div class="mb-3">
+                <label for="urls" class="form-label">URLs to Scan</label>
+                <textarea id="urls" class="form-control" rows="3" placeholder="Enter URLs separated by commas" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Start Scan</button>
+        </form>
+
+        <!-- Results Section -->
+        <div id="results" class="mt-5"></div>
+        
+        <!-- Graph Section -->
+        <canvas id="privacyChart" width="400" height="200" class="mt-4"></canvas>
+    </div>
+
+    <script>
+        document.getElementById('privacyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const urls = document.getElementById('urls').value.split(',');
+    
+            // Send a POST request to the Flask backend
+            fetch('/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    phone: phone,
+                    urls: urls
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // Parse the error and throw a meaningful message
+                    return response.json().then(error => {
+                        throw new Error(error.error || 'An unknown error occurred.');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayResults(data);   // Call displayResults to show the table
+                plotGraph(data);        // Call plotGraph to show the bar chart
+            })
+            .catch(error => {
+                // Handle errors gracefully
+                alert(`Error: ${error.message}`);  // Show the error in an alert
+                console.error('Error Details:', error.message); // Log error details for debugging
+            });
+        });
+    
+        // Function to display the scan results in a table
+        function displayResults(data) {
+    if (!Array.isArray(data)) {
+        console.error("Invalid data format received:", data);
+        return;
+    }
+
+    let resultsHtml = `
+        <h2 class="text-success">Scan Results</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th>Email Leak</th>
+                    <th>Phone Leak</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    data.forEach(result => {
+        resultsHtml += `
+            <tr>
+                <td>${result.url}</td>
+                <td>${result.email_leak ? 'Yes' : 'No'}</td>
+                <td>${result.phone_leak ? 'Yes' : 'No'}</td>
+            </tr>
+        `;
+    });
+    resultsHtml += `</tbody></table>`;
+    document.getElementById('results').innerHTML = resultsHtml;
+}
+    
+        // Function to plot a bar chart with the scan results
+        function plotGraph(data) {
+            const emailLeaks = data.filter(item => item.email_leak).length;
+            const phoneLeaks = data.filter(item => item.phone_leak).length;
+            const totalScans = data.length;
+    
+            const ctx = document.getElementById('privacyChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Email Leaks', 'Phone Leaks', 'No Leaks'],
+                    datasets: [{
+                        label: 'Privacy Scans',
+                        data: [emailLeaks, phoneLeaks, totalScans - emailLeaks - phoneLeaks],
+                        backgroundColor: ['#dc3545', '#007bff', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    </script>    
+</body>
+</html>
