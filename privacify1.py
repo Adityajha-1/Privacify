@@ -1,4 +1,5 @@
 import re
+import os
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -12,7 +13,7 @@ import numpy as np
 from flask import Flask, render_template, request, jsonify
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.dirname(__file__))
 
 # Patterns for detecting emails and phone numbers
 email_pattern = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
